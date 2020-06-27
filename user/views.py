@@ -3,7 +3,7 @@
 from django.forms import model_to_dict
 from django.views import View
 
-from DjangoBackend.util.smallTools import HttpResponse, Fields, Request
+from djangoBackend.util.smallTools import HttpResponse, Fields, Request
 from user.models import User
 
 class UsersView(View):
