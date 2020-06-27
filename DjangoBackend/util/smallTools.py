@@ -6,15 +6,18 @@ from django.http import JsonResponse
 from django.http.multipartparser import MultiPartParser
 
 
-class HttpStatus:
-    success = 200
-    userError = 402
-    serverError = 500
+class HttpResponse:
+    SUCCESS = 200
+    USER_ERROR = 402
+    SERVER_ERROR = 500
 
     @staticmethod  # 封装json接口
-    def getResponse(code, msg, data):
-        res = {'code': code, 'msg': msg, 'data': data}
-        return JsonResponse(res)
+    def success(msg="", data=None):
+        return JsonResponse({'code': HttpResponse.SUCCESS, 'msg': msg, 'data': data})
+
+    @staticmethod
+    def failure(code, msg=""):
+        return JsonResponse({'code': code, 'msg': msg, 'data': None})
 
 class Fields:
     @staticmethod  # 获取一个model的属性字段
