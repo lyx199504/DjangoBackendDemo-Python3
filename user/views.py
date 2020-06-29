@@ -7,7 +7,7 @@ from django.core.validators import RegexValidator
 from django.forms import model_to_dict
 from django.views import View
 
-from djangoBackend.util.smallTools import RestResponse, ModelUnit, Request
+from djangoBackend.util.smallTools import RestResponse, ModelUnit, Request, Package
 from user.models import User
 
 
@@ -68,13 +68,18 @@ class UserRegisterForm(forms.Form):
             del self.cleaned_data['password2']
         return self.cleaned_data
 
+class UserValidView(View):
+    def post(self, request):
+        form = UserRegisterForm(request.POST.dict())
+        if not form.is_valid():
+            return RestResponse.userFail("验证失败！", Package.formErrorToDict(form.errors))
+        return RestResponse.success("验证成功！")
+
 class UserRegisterView(View):
     def post(self, request):
         form = UserRegisterForm(request.POST.dict())
         if not form.is_valid():
-            errorDict = dict(form.errors)
-            data = {key: errorDict[key][0] for key in errorDict}
-            return RestResponse.failure(RestResponse.USER_ERROR, "注册失败！", data)
+            return RestResponse.userFail("注册失败！", Package.formErrorToDict(form.errors))
         user = form.cleaned_data
         user[ModelUnit.getOneField(User.nickname)] = user[ModelUnit.getOneField(User.userName)]
         now = datetime.datetime.now()
