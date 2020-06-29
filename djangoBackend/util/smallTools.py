@@ -6,26 +6,39 @@ from django.http import JsonResponse
 from django.http.multipartparser import MultiPartParser
 
 
-class HttpResponse:
+class RestResponse:
     SUCCESS = 200
+    AUTH_ERROR = 401
     USER_ERROR = 402
     SERVER_ERROR = 500
 
     @staticmethod  # 封装json接口
     def success(msg="", data=None):
-        return JsonResponse({'code': HttpResponse.SUCCESS, 'msg': msg, 'data': data})
+        return JsonResponse({'code': RestResponse.SUCCESS, 'msg': msg, 'data': data})
 
     @staticmethod
-    def failure(code, msg=""):
-        return JsonResponse({'code': code, 'msg': msg, 'data': None})
+    def failure(code, msg="", data=None):
+        return JsonResponse({'code': code, 'msg': msg, 'data': data})
 
-class Fields:
-    @staticmethod  # 获取一个model的属性字段
+class ModelUnit:
+    @staticmethod  # 获取数据表名
+    def getTableName(model):
+        return model._meta.db_table
+
+    @staticmethod  # 获取一个数据表字段
+    def getOneFieldDB(field):
+        return list(field.__dict__.values())[0].column
+
+    @staticmethod  # 获取一个model属性
     def getOneField(field):
         return list(field.__dict__.values())[0].name
 
-    @staticmethod  # 获取model的所有属性字段
-    def getFields(model):
+    @staticmethod  # 获取多个model属性
+    def getManyFields(fields):
+        return [list(field.__dict__.values())[0].name for field in fields]
+
+    @staticmethod  # 获取所有model属性
+    def getAllFields(model):
         return list(map(lambda field: field.name, model._meta.fields))
 
 class Request:

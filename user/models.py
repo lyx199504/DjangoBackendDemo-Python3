@@ -1,18 +1,30 @@
-# This is an auto-generated Django model module.
-# You'll have to do the following manually to clean this up:
-#   * Rearrange models' order
-#   * Make sure each model has one field with primary_key=True
-#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
-#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
-# Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
 
+from djangoBackend.util.smallTools import ModelUnit
 
 class User(models.Model):
     userId = models.AutoField(db_column='user_id', primary_key=True)
-    userName = models.CharField(db_column='user_name', max_length=30, blank=True, null=True)
-    gender = models.CharField(max_length=10, blank=True, null=True)
+    userName = models.CharField(db_column='user_name', unique=True, max_length=50)
+    password = models.CharField(db_column='password', max_length=16)
+    nickname = models.CharField(db_column='nickname', max_length=100)
+    gender = models.IntegerField(db_column='gender', default=1)
+    birthday = models.DateField(db_column='birthday', blank=True, null=True)
+    email = models.CharField(db_column='email', unique=True, max_length=30)
+    loginTime = models.DateTimeField(db_column='login_time', blank=True, null=True)
+    registerTime = models.DateTimeField(db_column='register_time', blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'user'
+
+class ChatMessage(models.Model):
+    chatMessageId = models.AutoField(db_column='chat_message_id', primary_key=True)
+    content = models.TextField(db_column='content')
+    status = models.IntegerField(db_column='status')
+    time = models.DateTimeField(db_column='time')
+    sendId = models.ForeignKey(db_column='send_id', to=User, to_field=ModelUnit.getOneField(User.userId), related_name='send_id_fk', on_delete=models.CASCADE)
+    receiveId = models.ForeignKey(db_column='receive_id', to=User, to_field=ModelUnit.getOneField(User.userId), related_name='receive_id_fk', on_delete=models.CASCADE)
+
+    class Meta:
+        managed = False
+        db_table = 'chat_message'
