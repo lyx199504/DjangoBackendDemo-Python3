@@ -13,12 +13,20 @@ class RestResponse:
     SERVER_ERROR = 500
 
     @staticmethod  # 封装json接口
-    def success(msg="", data=None):
+    def success(msg='', data=None):
         return JsonResponse({'code': RestResponse.SUCCESS, 'msg': msg, 'data': data})
 
     @staticmethod
-    def failure(code, msg="", data=None):
+    def failure(code, msg='', data=None):
         return JsonResponse({'code': code, 'msg': msg, 'data': data})
+
+    @staticmethod
+    def userFail(msg='', data=None):
+        return JsonResponse({'code': RestResponse.USER_ERROR, 'msg': msg, 'data': data})
+
+    @staticmethod
+    def serverFail():
+        return JsonResponse({'code': RestResponse.SERVER_ERROR, 'msg': '服务器错误！', 'data': None})
 
 class ModelUnit:
     @staticmethod  # 获取数据表名
@@ -40,6 +48,12 @@ class ModelUnit:
     @staticmethod  # 获取所有model属性
     def getAllFields(model):
         return list(map(lambda field: field.name, model._meta.fields))
+
+class Package:
+    @staticmethod
+    def formErrorToDict(errors):
+        errorDict = dict(errors)
+        return {key: errorDict[key][0] for key in errorDict}
 
 class Request:
     @staticmethod  # PUT请求获取body

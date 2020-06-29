@@ -10,4 +10,4 @@ from djangoBackend.util.smallTools import RestResponse
 class ExceptionMiddleware(MiddlewareMixin):
     def process_exception(self, request, exception):
         print(str(exception))
-        return RestResponse.failure(RestResponse.SERVER_ERROR, "服务器错误！")
+        return RestResponse.serverFail()
