@@ -83,4 +83,4 @@ class Token:
         key = token.getRedisKey(id, device, deviceId)
         sn = token.encodeSn(id, device, deviceId)
         success = RedisData.setInfo(key, sn, Token.REDIS_TIME)
-        return sn if success else None
+        return sn if success else ""

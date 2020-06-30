@@ -3,7 +3,6 @@
 # @Time : 2020/6/25 22:37
 # @Author : LYX-夜光
 from django.http import JsonResponse
-from django.http.multipartparser import MultiPartParser
 
 
 class RestResponse:
@@ -27,8 +26,3 @@ class RestResponse:
     @staticmethod
     def serverFail():
         return JsonResponse({'code': RestResponse.SERVER_ERROR, 'msg': '服务器错误！', 'data': None})
-
-class Request:
-    @staticmethod  # PUT请求获取body
-    def body(request):
-        return MultiPartParser(request.META, request, request.upload_handlers).parse()[0].dict()
