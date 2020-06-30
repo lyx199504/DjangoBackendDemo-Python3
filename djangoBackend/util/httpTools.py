@@ -28,33 +28,6 @@ class RestResponse:
     def serverFail():
         return JsonResponse({'code': RestResponse.SERVER_ERROR, 'msg': '服务器错误！', 'data': None})
 
-class ModelUnit:
-    @staticmethod  # 获取数据表名
-    def getTableName(model):
-        return model._meta.db_table
-
-    @staticmethod  # 获取一个数据表字段
-    def getOneFieldDB(field):
-        return list(field.__dict__.values())[0].column
-
-    @staticmethod  # 获取一个model属性
-    def getOneField(field):
-        return list(field.__dict__.values())[0].name
-
-    @staticmethod  # 获取多个model属性
-    def getManyFields(fields):
-        return [list(field.__dict__.values())[0].name for field in fields]
-
-    @staticmethod  # 获取所有model属性
-    def getAllFields(model):
-        return list(map(lambda field: field.name, model._meta.fields))
-
-class Package:
-    @staticmethod
-    def formErrorToDict(errors):
-        errorDict = dict(errors)
-        return {key: errorDict[key][0] for key in errorDict}
-
 class Request:
     @staticmethod  # PUT请求获取body
     def body(request):

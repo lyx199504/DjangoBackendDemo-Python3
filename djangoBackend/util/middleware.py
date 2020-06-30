@@ -4,7 +4,7 @@
 # @Author : LYX-夜光
 from django.utils.deprecation import MiddlewareMixin
 
-from djangoBackend.util.smallTools import RestResponse
+from djangoBackend.util.httpTools import RestResponse
 
 
 class ExceptionMiddleware(MiddlewareMixin):
