@@ -1,93 +1,68 @@
 
 # Create your views here.
 import datetime
+import hashlib
 
-from django import forms
-from django.core.validators import RegexValidator
 from django.forms import model_to_dict
+from django.http.multipartparser import MultiPartParser
 from django.views import View
 
-from djangoBackend.util.smallTools import RestResponse, ModelUnit, Request, Package
+from djangoBackend.util.httpTools import RestResponse
+from djangoBackend.util.userTools import Token
+from user.forms import UserRegisterForm
 from user.models import User
 
+# 用户登录认证
+class NewView(View):
+    def setHeaders(self):
+        self.device = self.request.META.get('HTTP_DEVICE', "")
+        self.deviceId = self.request.META.get('HTTP_DEVICEID', "")
+        self.sn = self.request.META.get('HTTP_SN', "")
 
-class UserRegisterForm(forms.Form):
-    userName = forms.CharField(min_length=6,
-                               max_length=30,
-                               error_messages={
-                                   'required': '用户名不能为空！',
-                                   'min_length': '用户名不能少于6个字符！',
-                                   'max_length': '用户名不能多于30个字符！',
-                               },
-                               validators=[RegexValidator(r'^[A-Za-z0-9_]+$', '用户名只能由字母、数字、下划线组成！')])
-    password = forms.CharField(min_length=6,
-                               max_length=16,
-                               error_messages={
-                                   'required': '密码不能为空！',
-                                   'min_length': '密码不能少于6个字符！',
-                                   'max_length': '密码不能多于16个字符！',
-                               })
-    password2 = forms.CharField(error_messages={
-                                   'required': '确认密码不能为空！',
-                               })
-    email = forms.EmailField(error_messages={
-                                 'required': '邮箱不能为空！',
-                                 'invalid': '邮箱格式错误!',
-                             })
+    def getPost(self):
+        return self.request.POST.dict()
 
-    def clean_userName(self):
-        userNameValue = self.cleaned_data['userName']
-        userId = ModelUnit.getOneFieldDB(User.userId)
-        table = ModelUnit.getTableName(User)
-        userName = ModelUnit.getOneFieldDB(User.userName)
-        sql = "SELECT %s FROM %s WHERE %s=%s" % (userId, table, userName, '%s')
-        results = User.objects.raw(sql, [userNameValue])
-        if results:
-            self.add_error('userName', forms.ValidationError('用户名已存在！'))
-        return userNameValue
+    def getPut(self):
+        return MultiPartParser(self.request.META, self.request, self.request.upload_handlers).parse()[0].dict()
 
-    def clean_email(self):
-        emailValue = self.cleaned_data['email']
-        userId = ModelUnit.getOneFieldDB(User.userId)
-        table = ModelUnit.getTableName(User)
-        email = ModelUnit.getOneFieldDB(User.email)
-        sql = "SELECT %s FROM %s WHERE %s=%s" % (userId, table, email, '%s')
-        results = User.objects.raw(sql, [emailValue])
-        if results:
-            self.add_error('email', forms.ValidationError('邮箱已被注册！'))
-        return emailValue
+    def userAuth(self):
+        self.setHeaders()
+        self.deviceId = hashlib.md5(self.deviceId.encode('utf-8')).hexdigest()
+        self.userId = Token.validSn(self.sn, self.device, self.deviceId)  # 用户认证
 
-    def clean(self):
-        passwordValue = self.cleaned_data.get('password')
-        password2Value = self.cleaned_data.get('password2')
-        if not passwordValue or not password2Value:
-            return self.cleaned_data
-        if passwordValue != password2Value:
-            self.add_error('password2', forms.ValidationError('二次输入密码不一致'))
-        else:
-            del self.cleaned_data['password2']
-        return self.cleaned_data
-
-class UserValidView(View):
+# 用户登录验证
+class UserRegisterValidView(View):
     def post(self, request):
         form = UserRegisterForm(request.POST.dict())
         if not form.is_valid():
-            return RestResponse.userFail("验证失败！", Package.formErrorToDict(form.errors))
+            errorDict = dict(form.errors)
+            errorDict = {key: errorDict[key][0] for key in errorDict}
+            return RestResponse.userFail("验证失败！", errorDict)
         return RestResponse.success("验证成功！")
 
-class UserRegisterView(View):
+# 用户注册
+class UserRegisterView(NewView):
     def post(self, request):
+        self.setHeaders()
         form = UserRegisterForm(request.POST.dict())
         if not form.is_valid():
-            return RestResponse.userFail("注册失败！", Package.formErrorToDict(form.errors))
+            errorDict = dict(form.errors)
+            errorDict = {key: errorDict[key][0] for key in errorDict}
+            return RestResponse.userFail("注册失败！", errorDict)
         user = form.cleaned_data
-        user[ModelUnit.getOneField(User.nickname)] = user[ModelUnit.getOneField(User.userName)]
-        now = datetime.datetime.now()
-        user[ModelUnit.getOneField(User.birthday)] = now
-        user[ModelUnit.getOneField(User.loginTime)] = now
-        user[ModelUnit.getOneField(User.registerTime)] = now
-        data = User.objects.create(**user)
-        return RestResponse.success("注册成功！", {ModelUnit.getOneField(User.userId): data.userId})
+        user['password'] = hashlib.md5(user['password'].encode()).hexdigest()
+        user['nickname'] = user['userName']
+        user['birthday'] = user['loginTime'] = user['registerTime'] = datetime.datetime.now()
+        user = User.objects.create(**user)
+        sn = Token.setSn(user.userId, self.device, self.deviceId)
+        return RestResponse.success("注册成功！", {'userId': user.userId, 'sn': sn})
+
+
+
+# 用户登录
+class UserLoginView(View):
+    def post(self, request):
+        return RestResponse.success("登录成功！")
 
 class UsersView(View):
     def get(self, request):
@@ -95,20 +70,24 @@ class UsersView(View):
         return RestResponse.success("获取成功！", data)
 
     def put(self, request):
-        PUT = Request.body(request)
-        field = ModelUnit.getOneField(User.userId)
-        isUpdate = User.objects.filter(userId=PUT[field]).update(**PUT)
-        if isUpdate:
-            return RestResponse.success("修改成功！")
+        # PUT = Request.body(request)
+        # field = ModelUnit.getOneField(User.userId)
+        # isUpdate = User.objects.filter(userId=PUT[field]).update(**PUT)
+        # if isUpdate:
+        #     return RestResponse.success("修改成功！")
         return RestResponse.failure(RestResponse.USER_ERROR, "修改失败！")
 
 class UserView(View):
-    def get(self, request, id):
-        data = model_to_dict(User.objects.get(userId=id))
+    def get(self, request, userId):
+        user = User.objects.get(userId=userId)
+        print(user)
+        if not user:
+            return RestResponse.userFail("获取失败！")
+        data = model_to_dict(user)
         return RestResponse.success("获取成功！", data)
 
-    def delete(self, request, id):
-        isDelete = User.objects.filter(userId=id).delete()
+    def delete(self, request, userId):
+        isDelete = User.objects.filter(userId=userId).delete()
         if isDelete[0]:
             return RestResponse.success("删除成功！")
         return RestResponse.failure(RestResponse.USER_ERROR, "删除失败")
