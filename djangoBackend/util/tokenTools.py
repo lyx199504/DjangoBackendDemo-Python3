@@ -65,7 +65,7 @@ class Token:
     # 根据id在redis中获取sn
     def getSn(self, id, device, deviceId):
         key = self.getRedisKey(id, device, deviceId)
-        return RedisData.getInfo(key)
+        return RedisData.getData(key)
 
     @staticmethod  # 验证sn
     def validSn(sn, device, deviceId):
@@ -82,5 +82,5 @@ class Token:
         token = Token()
         key = token.getRedisKey(id, device, deviceId)
         sn = token.encodeSn(id, device, deviceId)
-        success = RedisData.setInfo(key, sn, Token.REDIS_TIME)
+        success = RedisData.setData(key, sn, Token.REDIS_TIME)
         return sn if success else ""
