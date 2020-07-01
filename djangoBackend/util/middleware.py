@@ -9,5 +9,7 @@ from djangoBackend.util.httpTools import RestResponse
 
 class ExceptionMiddleware(MiddlewareMixin):
     def process_exception(self, request, exception):
+        if str(exception) == 'userAuthException':
+            return RestResponse.authFail()
         print(str(exception))
         return RestResponse.serverFail()
