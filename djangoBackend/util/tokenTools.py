@@ -10,11 +10,6 @@ import base64
 
 from djangoBackend.util.dataTools import RedisData
 
-class Device:
-    WEB = 'web'
-    ANDROID = 'android'
-    IOS = 'ios'
-
 class Token:
     REDIS_TIME = 60*60*24*7  # 7天
 
@@ -55,16 +50,9 @@ class Token:
         except:
             return None
 
-    # 存储在redis中sn的key
-    def getRedisKey(self, id, device, deviceId):
-        if device == Device.WEB:
-            return "/user/%s/sn/%s/%s" % (id, device, deviceId)
-        else:
-            return "/user/%s/sn/%s" % (id, device)
-
     # 根据id在redis中获取sn
-    def getSn(self, id, device, deviceId):
-        key = self.getRedisKey(id, device, deviceId)
+    def getSn(self, id, device):
+        key = RedisData.getSnKey(id, device)
         return RedisData.getData(key)
 
     @staticmethod  # 验证sn
@@ -72,7 +60,7 @@ class Token:
         token = Token()
         id = token.decodeSn(sn, device, deviceId)
         if id:
-            sn_redis = token.getSn(id, device, deviceId)
+            sn_redis = token.getSn(id, device)
             if sn_redis == sn:
                 return id
         return None
@@ -80,7 +68,7 @@ class Token:
     @staticmethod  # 将sn与id分别存入redis
     def setSn(id, device, deviceId):
         token = Token()
-        key = token.getRedisKey(id, device, deviceId)
+        key = RedisData.getSnKey(id, device)
         sn = token.encodeSn(id, device, deviceId)
         success = RedisData.setData(key, sn, Token.REDIS_TIME)
         return sn if success else ""
