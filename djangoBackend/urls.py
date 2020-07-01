@@ -16,14 +16,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, re_path
 
-from user.views import UserView, UsersView, UserRegisterView, UserValidView
+from user.views import UserView, UserSelfView, UserRegisterView, UserRegisterValidView, UserLoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # 用户接口
-    path('user/valid', UserValidView.as_view()),
+    path('user/valid', UserRegisterValidView.as_view()),
     path('user/register', UserRegisterView.as_view()),
-    path('user', UsersView.as_view()),
-    re_path('user/(?P<id>\d+)', UserView.as_view()),
+    path('user/login', UserLoginView.as_view()),
+    path('user', UserSelfView.as_view()),
+    re_path('user/(?P<userId>\d+)', UserView.as_view()),
 
 ]

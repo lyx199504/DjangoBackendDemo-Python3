@@ -7,8 +7,9 @@ from django.forms import model_to_dict
 from django.http.multipartparser import MultiPartParser
 from django.views import View
 
+from djangoBackend.util.dataTools import Data
 from djangoBackend.util.httpTools import RestResponse
-from djangoBackend.util.userTools import Token
+from djangoBackend.util.tokenTools import Token
 from user.forms import UserRegisterForm
 from user.models import User
 
@@ -17,6 +18,8 @@ class NewView(View):
     def setHeaders(self):
         self.device = self.request.META.get('HTTP_DEVICE', "")
         self.deviceId = self.request.META.get('HTTP_DEVICEID', "")
+        if self.deviceId:
+            self.deviceId = hashlib.md5(self.deviceId.encode('utf-8')).hexdigest()
         self.sn = self.request.META.get('HTTP_SN', "")
 
     def getPost(self):
@@ -25,10 +28,12 @@ class NewView(View):
     def getPut(self):
         return MultiPartParser(self.request.META, self.request, self.request.upload_handlers).parse()[0].dict()
 
+    # 用户认证
     def userAuth(self):
         self.setHeaders()
-        self.deviceId = hashlib.md5(self.deviceId.encode('utf-8')).hexdigest()
-        self.userId = Token.validSn(self.sn, self.device, self.deviceId)  # 用户认证
+        self.userId = Token.validSn(self.sn, self.device, self.deviceId)
+        if not self.userId:
+            raise Exception('userAuthException')
 
 # 用户登录验证
 class UserRegisterValidView(View):
@@ -44,7 +49,7 @@ class UserRegisterValidView(View):
 class UserRegisterView(NewView):
     def post(self, request):
         self.setHeaders()
-        form = UserRegisterForm(request.POST.dict())
+        form = UserRegisterForm(self.getPost())
         if not form.is_valid():
             errorDict = dict(form.errors)
             errorDict = {key: errorDict[key][0] for key in errorDict}
@@ -57,17 +62,16 @@ class UserRegisterView(NewView):
         sn = Token.setSn(user.userId, self.device, self.deviceId)
         return RestResponse.success("注册成功！", {'userId': user.userId, 'sn': sn})
 
-
-
 # 用户登录
 class UserLoginView(View):
     def post(self, request):
         return RestResponse.success("登录成功！")
 
-class UsersView(View):
+class UserSelfView(NewView):
     def get(self, request):
-        data = list(User.objects.all().values())
-        return RestResponse.success("获取成功！", data)
+        self.userAuth()
+        data = Data.getData(User, self.userId)
+        return RestResponse.success("获取自己的信息成功！", data)
 
     def put(self, request):
         # PUT = Request.body(request)
@@ -79,15 +83,5 @@ class UsersView(View):
 
 class UserView(View):
     def get(self, request, userId):
-        user = User.objects.get(userId=userId)
-        print(user)
-        if not user:
-            return RestResponse.userFail("获取失败！")
-        data = model_to_dict(user)
-        return RestResponse.success("获取成功！", data)
-
-    def delete(self, request, userId):
-        isDelete = User.objects.filter(userId=userId).delete()
-        if isDelete[0]:
-            return RestResponse.success("删除成功！")
-        return RestResponse.failure(RestResponse.USER_ERROR, "删除失败")
+        data = Data.getData(User, userId)
+        return RestResponse.success("获取用户信息成功！", data)
