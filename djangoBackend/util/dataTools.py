@@ -91,3 +91,15 @@ class Data:
             else:
                 data = {}
         return data
+
+    @staticmethod  # 先在db后在redis中更新数据
+    def updateData(model, data):
+        modelName = model._meta.object_name
+        modelName = modelName[0].lower() + modelName[1:]
+        modelId = modelName+'Id'
+        success = model.objects.filter(**{modelId: data[modelId]}).update(**data)
+        if success:
+            data = model.objects.filter(**{modelId: data[modelId]}).values(*model.allowFields()).first()
+            if data:
+                key = RedisData.getDataKey(modelName, data[modelId])
+                RedisData.setData(key, data, RedisData.DATA_TIME)
