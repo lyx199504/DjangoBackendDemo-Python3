@@ -4,6 +4,14 @@
 # @Author : LYX-夜光
 from django.http import JsonResponse
 
+class Device:
+    WEB = 'web'
+    ANDROID = 'android'
+    IOS = 'ios'
+
+    @staticmethod
+    def deviceList():
+        return [Device.WEB, Device.ANDROID, Device.IOS]
 
 class RestResponse:
     SUCCESS = 200
