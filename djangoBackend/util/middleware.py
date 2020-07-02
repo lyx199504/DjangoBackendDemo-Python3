@@ -9,7 +9,10 @@ from djangoBackend.util.httpTools import RestResponse
 
 class ExceptionMiddleware(MiddlewareMixin):
     def process_exception(self, request, exception):
-        if str(exception) == 'userAuthException':
+        exceptionStr = str(exception)
+        print(exceptionStr)
+        if exceptionStr == 'userAuthException':
             return RestResponse.authFail()
-        print(str(exception))
+        elif exceptionStr == 'headersException':
+            return RestResponse.userFail('Headers错误！')
         return RestResponse.serverFail()
