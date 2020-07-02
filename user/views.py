@@ -3,47 +3,23 @@
 import datetime
 import hashlib
 
-from django.forms import model_to_dict
-from django.http.multipartparser import MultiPartParser
+from django.db.models import Q
 from django.views import View
 
 from djangoBackend.util.dataTools import Data
 from djangoBackend.util.httpTools import RestResponse
 from djangoBackend.util.tokenTools import Token
-from user.forms import UserRegisterForm
+from djangoBackend.util.viewsTools import NewView
+from user.forms import UserRegisterForm, UserLoginForm
 from user.models import User
-
-# 用户登录认证
-class NewView(View):
-    def setHeaders(self):
-        self.device = self.request.META.get('HTTP_DEVICE', "")
-        self.deviceId = self.request.META.get('HTTP_DEVICEID', "")
-        if self.deviceId:
-            self.deviceId = hashlib.md5(self.deviceId.encode('utf-8')).hexdigest()
-        self.sn = self.request.META.get('HTTP_SN', "")
-
-    def getPost(self):
-        return self.request.POST.dict()
-
-    def getPut(self):
-        return MultiPartParser(self.request.META, self.request, self.request.upload_handlers).parse()[0].dict()
-
-    # 用户认证
-    def userAuth(self):
-        self.setHeaders()
-        self.userId = Token.validSn(self.sn, self.device, self.deviceId)
-        if not self.userId:
-            raise Exception('userAuthException')
 
 # 用户登录验证
 class UserRegisterValidView(View):
     def post(self, request):
         form = UserRegisterForm(request.POST.dict())
         if not form.is_valid():
-            errorDict = dict(form.errors)
-            errorDict = {key: errorDict[key][0] for key in errorDict}
-            return RestResponse.userFail("验证失败！", errorDict)
-        return RestResponse.success("验证成功！")
+            return RestResponse.userFail("注册验证失败！", form.errorsDict())
+        return RestResponse.success("注册验证成功！")
 
 # 用户注册
 class UserRegisterView(NewView):
@@ -51,9 +27,7 @@ class UserRegisterView(NewView):
         self.setHeaders()
         form = UserRegisterForm(self.getPost())
         if not form.is_valid():
-            errorDict = dict(form.errors)
-            errorDict = {key: errorDict[key][0] for key in errorDict}
-            return RestResponse.userFail("注册失败！", errorDict)
+            return RestResponse.userFail("注册失败！", form.errorsDict())
         user = form.cleaned_data
         user['password'] = hashlib.md5(user['password'].encode()).hexdigest()
         user['nickname'] = user['userName']
@@ -63,9 +37,20 @@ class UserRegisterView(NewView):
         return RestResponse.success("注册成功！", {'userId': user.userId, 'sn': sn})
 
 # 用户登录
-class UserLoginView(View):
+class UserLoginView(NewView):
     def post(self, request):
-        return RestResponse.success("登录成功！")
+        self.setHeaders()
+        form = UserLoginForm(self.getPost())
+        if not form.is_valid():
+            return RestResponse.userFail("登录失败！", form.errorsDict())
+        user = form.cleaned_data
+        data = User.objects.filter(Q(userName=user['loginName']) | Q(email=user['loginName'])).values('userId').first()
+        if not data:
+            return RestResponse.userFail("登录名或密码错误！")
+        sn = Token.setSn(data['userId'], self.device, self.deviceId)
+        data['loginTime'] = datetime.datetime.now()
+        Data.updateData(User, data)
+        return RestResponse.success("登录成功！", {'userId': data['userId'], 'sn': sn})
 
 class UserSelfView(NewView):
     def get(self, request):

@@ -6,9 +6,11 @@
 from django import forms
 from django.core.validators import RegexValidator
 
+from djangoBackend.util.viewsTools import NewForm
 from user.models import User
 
-class UserRegisterForm(forms.Form):
+# 用户注册表单
+class UserRegisterForm(NewForm):
     userName = forms.CharField(min_length=6,
                                max_length=30,
                                error_messages={
@@ -23,9 +25,6 @@ class UserRegisterForm(forms.Form):
                                    'required': '密码不能为空！',
                                    'min_length': '密码不能少于6个字符！',
                                    'max_length': '密码不能多于16个字符！',
-                               })
-    password2 = forms.CharField(error_messages={
-                                   'required': '确认密码不能为空！',
                                })
     email = forms.EmailField(error_messages={
                                  'required': '邮箱不能为空！',
@@ -46,13 +45,7 @@ class UserRegisterForm(forms.Form):
             self.add_error('email', forms.ValidationError('邮箱已被注册！'))
         return email
 
-    def clean(self):
-        password = self.cleaned_data.get('password')
-        password2 = self.cleaned_data.get('password2')
-        if not password or not password2:
-            return self.cleaned_data
-        if password != password2:
-            self.add_error('password2', forms.ValidationError('二次输入密码不一致'))
-        else:
-            del self.cleaned_data['password2']
-        return self.cleaned_data
+# 用户登录表单
+class UserLoginForm(NewForm):
+    loginName = forms.CharField(error_messages={'required': '用户名/邮箱不能为空！'})
+    password = forms.CharField(error_messages={'required': '密码不能为空！'})
