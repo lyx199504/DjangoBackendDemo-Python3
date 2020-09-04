@@ -20,11 +20,11 @@ class RestResponse:
     SERVER_ERROR = 500
 
     @staticmethod  # 封装json接口
-    def success(msg='', data=None):
+    def success(msg='', data={}):
         return JsonResponse({'code': RestResponse.SUCCESS, 'msg': msg, 'data': data})
 
     @staticmethod
-    def failure(code, msg='', data=None):
+    def failure(code, msg='', data={}):
         return JsonResponse({'code': code, 'msg': msg, 'data': data})
 
     @staticmethod
@@ -32,7 +32,7 @@ class RestResponse:
         return JsonResponse({'code': RestResponse.AUTH_ERROR, 'msg': '用户认证失败，请重新登录！', 'data': None})
 
     @staticmethod
-    def userFail(msg='', data=None):
+    def userFail(msg='', data={}):
         return JsonResponse({'code': RestResponse.USER_ERROR, 'msg': msg, 'data': data})
 
     @staticmethod
